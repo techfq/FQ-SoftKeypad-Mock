@@ -41,9 +41,11 @@ namespace Calculator_WPF
         private string tcp_ip = "127.0.0.1";
         private int tcp_port = 5000;
 
-        private TcpClientListener tcpClient;
+        //private TcpClientListener tcpClient;
         private IniFile iniFile;
         private bool isConnected = false;
+
+        private TcpClientWrapper tcpClient;
         public MainWindow()
         {
             InitializeComponent();
@@ -60,24 +62,49 @@ namespace Calculator_WPF
             double leftPosition = System.Windows.SystemParameters.PrimaryScreenWidth - this.Width - 20;
             this.Left = leftPosition;
             this.Top = 20;
-            PreviewKeyUp += OnPreviewKeyDown;
-            if (autoConnect)
-            {
-                if (!isConnected)
-                {
-                    tcpClient = new TcpClientListener(Dispatcher);
-                    if (tcpClient.Connect(tcp_ip, tcp_port))
-                    {
-                        isConnected = true;
-                        btn_connect.Content = "Disconnect";
-                        btn_connect.Background = new SolidColorBrush(Color.FromArgb(0xFF, 0x18, 0x8E, 0x08));
+            //PreviewKeyUp += OnPreviewKeyDown;
+            //if (autoConnect)
+            //{
+            //    if (!isConnected)
+            //    {
+            //        tcpClient = new TcpClientListener(Dispatcher);
+            //        if (tcpClient.Connect(tcp_ip, tcp_port))
+            //        {
+            //            isConnected = true;
+            //            btn_connect.Content = "Disconnect";
+            //            btn_connect.Background = new SolidColorBrush(Color.FromArgb(0xFF, 0x18, 0x8E, 0x08));
 
-                        tcpClient.MessageReceived += OnMessageReceived;
-                    }
-                }
+            //            tcpClient.MessageReceived += OnMessageReceived;
+            //        }
+            //    }
+            //}
+
+            tcpClient = new TcpClientWrapper();
+            tcpClient.DataReceived += OnMessageReceived;
+            bool connected = tcpClient.Connect("127.0.0.1");
+
+            if (connected)
+            {
+                Console.WriteLine("Connected to server.");
+                tcpClient.Send("DEVTYPE01-02THAITAI");
+            }
+            else
+            {
+                Console.WriteLine("Failed to connect to server.");
             }
 
+
         }
+
+        private void OnDataReceived(string data)
+        {
+            Debug.WriteLine("Received data: " + data);
+        }
+
+        //private void SendButton_Click(object sender, RoutedEventArgs e)
+        //{
+        //    _tcpClient.SendData("Hello, server!");
+        //}
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
         {
             base.OnClosing(e);
@@ -93,32 +120,33 @@ namespace Calculator_WPF
                 string[] cmds = rx_mgs.Split(',');
                 if (cmds.Length > 4)
                 {
-                    if (cmds[2] == "103")
-                    {
-                        int number = int.Parse(cmds[3]);
-                        if (number > 0)
-                        {
-                            currentNumber = number;
-                            lb_display.Content = number.ToString("D4");
-                        }
-                        else
-                        {
-                            lb_display.Content = "Hết khách";
-                        }
-                        if (runtimeState == APPSTATE.LOGIN)
-                        {
-                            iniFile.WriteValue(USER.NAME, USER.TELLERID, tellerID.ToString());
-                            iniFile.Save(configFileName);
-                        }
-                        if (runtimeState != APPSTATE.CALL_NUM)
-                        {
-                            runtimeState = APPSTATE.CALL_NUM;
-                            btn_enter.Content = "NEXT";
-                        }
-                        
+                    //if (cmds[2] == "103")
+                    //{
+                    //    int number = int.Parse(cmds[3]);
+                    //    if (number > 0)
+                    //    {
+                    //        currentNumber = number;
+                    //        lb_display.Content = number.ToString("D4");
+                    //    }
+                    //    else
+                    //    {
+                    //        lb_display.Content = "Hết khách";
+                    //    }
+                    //    if (runtimeState == APPSTATE.LOGIN)
+                    //    {
+                    //        iniFile.WriteValue(USER.NAME, USER.TELLERID, tellerID.ToString());
+                    //        iniFile.Save(configFileName);
+                    //    }
+                    //    if (runtimeState != APPSTATE.CALL_NUM)
+                    //    {
+                    //        runtimeState = APPSTATE.CALL_NUM;
+                    //        btn_enter.Content = "NEXT";
+                    //    }
 
-                    }
+
+                    //}
                 }
+                tcpClient.Send("DEVTYPE0101");
             }
         }
 
@@ -141,25 +169,32 @@ namespace Calculator_WPF
 
         private void ConnectButton_Click(object sender, RoutedEventArgs e)
         {
+
             if (!isConnected)
             {
-                tcpClient = new TcpClientListener(Dispatcher);
-                if (tcpClient.Connect(tcp_ip, tcp_port))
-                {
-                    isConnected = true;
-                    btn_connect.Content = "Disconnect";
-                    btn_connect.Background = new SolidColorBrush(Color.FromArgb(0xFF, 0x18, 0x8E, 0x08));
 
-                    tcpClient.MessageReceived += OnMessageReceived;
-                }
+                isConnected = tcpClient.Connect("127.0.0.1");
+                //if (isConnected)
+                //{
+                //    isConnected = true;
+                //    btn_connect.Content = "Disconnect";
+                //    btn_connect.Background = new SolidColorBrush(Color.FromArgb(0xFF, 0x18, 0x8E, 0x08));
+
+                //    tcpClient.MessageReceived += OnMessageReceived;
+                //}
             }
             else
             {
-                tcpClient.Disconnect();
+                 tcpClient.Disconnect();
                 isConnected = false;
-                btn_connect.Content = "Connect";
-                btn_connect.Background = new SolidColorBrush(Color.FromRgb(224, 60, 11));
             }
+            //else
+            //{
+            //    tcpClient.Disconnect();
+            //    isConnected = false;
+            //    btn_connect.Content = "Connect";
+            //    btn_connect.Background = new SolidColorBrush(Color.FromRgb(224, 60, 11));
+            //}
         }
         private void MinimizeButton_Click(object sender, RoutedEventArgs e)
         {
@@ -300,6 +335,7 @@ namespace Calculator_WPF
                         cmd_msg += CalculateCRC(cmd_msg);
                         Debug.WriteLine(cmd_msg);
                         tcpClient.Send(cmd_msg);
+                        
                     }
                     break;
 

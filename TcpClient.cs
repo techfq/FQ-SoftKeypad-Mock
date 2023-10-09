@@ -86,10 +86,10 @@ public class TcpClientListener
             while (true)
             {
                 int bytesRead = reader.Read(buffer, 0, buffer.Length);
-                if (bytesRead == 0)
-                {
-                    break;
-                }
+                //if (bytesRead == 0)
+                //{
+                //    break;
+                //}
 
                 string message = new string(buffer, 0, bytesRead);
                 Debug.WriteLine(message);
