@@ -68,7 +68,7 @@ public class TcpClientListener
             if (writer != null)
             {
                 writer.Write(message);
-                writer.Flush(); 
+                writer.Flush();
             }
         }
         catch (Exception ex)

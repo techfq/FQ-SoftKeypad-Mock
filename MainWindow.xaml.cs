@@ -10,12 +10,10 @@ using System.Reflection.Metadata;
 using static System.Windows.Forms.AxHost;
 using System.Text;
 using System.Windows.Interop;
+using System.Threading;
 
 namespace Calculator_WPF
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window
     {
         private string currentInput = "";
@@ -44,6 +42,7 @@ namespace Calculator_WPF
         private TcpClientListener tcpClient;
         private IniFile iniFile;
         private bool isConnected = false;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -52,12 +51,14 @@ namespace Calculator_WPF
             tcp_ip = iniFile.ReadValue(TCPIP.TCPNAME, TCPIP.ADDRESS, "127.0.0.1");
             tcp_port = int.Parse(iniFile.ReadValue(TCPIP.TCPNAME, TCPIP.PORT, "1000"));
             tellerID = int.Parse(iniFile.ReadValue(USER.NAME, USER.TELLERID, "1"));
-            bool autoConnect = iniFile.ReadValue(USER.NAME, USER.AUTOCONNECT, "0") == "1" ? true : false;
+            bool autoConnect =
+                iniFile.ReadValue(USER.NAME, USER.AUTOCONNECT, "0") == "1" ? true : false;
 
             currentInput = $"{tellerID}";
             lb_display.Content = $"ID: {currentInput}";
             MouseLeftButtonDown += MainWindow_MouseLeftButtonDown;
-            double leftPosition = System.Windows.SystemParameters.PrimaryScreenWidth - this.Width - 20;
+            double leftPosition =
+                System.Windows.SystemParameters.PrimaryScreenWidth - this.Width - 20;
             this.Left = leftPosition;
             this.Top = 20;
             PreviewKeyUp += OnPreviewKeyDown;
@@ -70,14 +71,16 @@ namespace Calculator_WPF
                     {
                         isConnected = true;
                         btn_connect.Content = "Disconnect";
-                        btn_connect.Background = new SolidColorBrush(Color.FromArgb(0xFF, 0x18, 0x8E, 0x08));
+                        btn_connect.Background = new SolidColorBrush(
+                            Color.FromArgb(0xFF, 0x18, 0x8E, 0x08)
+                        );
 
                         tcpClient.MessageReceived += OnMessageReceived;
                     }
                 }
             }
-
         }
+
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
         {
             base.OnClosing(e);
@@ -109,14 +112,13 @@ namespace Calculator_WPF
                         {
                             iniFile.WriteValue(USER.NAME, USER.TELLERID, tellerID.ToString());
                             iniFile.Save(configFileName);
+                            tcpClient.Send($"DEVTYPE01{tellerID:D2}");
                         }
                         if (runtimeState != APPSTATE.CALL_NUM)
                         {
                             runtimeState = APPSTATE.CALL_NUM;
                             btn_enter.Content = "NEXT";
                         }
-                        
-
                     }
                 }
             }
@@ -136,7 +138,6 @@ namespace Calculator_WPF
             {
                 MessageBox.Show($"Error while closing the TCP client: {ex.Message}");
             }
-
         }
 
         private void ConnectButton_Click(object sender, RoutedEventArgs e)
@@ -148,7 +149,9 @@ namespace Calculator_WPF
                 {
                     isConnected = true;
                     btn_connect.Content = "Disconnect";
-                    btn_connect.Background = new SolidColorBrush(Color.FromArgb(0xFF, 0x18, 0x8E, 0x08));
+                    btn_connect.Background = new SolidColorBrush(
+                        Color.FromArgb(0xFF, 0x18, 0x8E, 0x08)
+                    );
 
                     tcpClient.MessageReceived += OnMessageReceived;
                 }
@@ -161,6 +164,7 @@ namespace Calculator_WPF
                 btn_connect.Background = new SolidColorBrush(Color.FromRgb(224, 60, 11));
             }
         }
+
         private void MinimizeButton_Click(object sender, RoutedEventArgs e)
         {
             this.WindowState = WindowState.Minimized;
@@ -174,11 +178,17 @@ namespace Calculator_WPF
                 this.WindowState = WindowState.Normal;
         }
 
-        private void CloseButton_Click(object sender, RoutedEventArgs e) { this.Close(); }
+        private void CloseButton_Click(object sender, RoutedEventArgs e)
+        {
+            this.Close();
+        }
 
         private void MainWindow_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (e.ButtonState == MouseButtonState.Pressed) { DragMove(); }
+            if (e.ButtonState == MouseButtonState.Pressed)
+            {
+                DragMove();
+            }
         }
 
         private void NumberButton_Click(object sender, RoutedEventArgs e)
@@ -221,7 +231,9 @@ namespace Calculator_WPF
                     HandleNext();
                     break;
             }
+            Thread.Sleep(20); // Add some delay incase user handle too fast
         }
+
         private void OnPreviewKeyDown(object sender, KeyEventArgs e)
         {
             string keyText = e.Key.ToString();
@@ -246,8 +258,10 @@ namespace Calculator_WPF
                     break;
 
                 case "Return":
-                    if (("" + btn_enter.Content.ToString() == "NEXT")) HandleNext();
-                    else HandleEnter();
+                    if (("" + btn_enter.Content.ToString() == "NEXT"))
+                        HandleNext();
+                    else
+                        HandleEnter();
                     break;
 
                 default:
@@ -262,8 +276,9 @@ namespace Calculator_WPF
                     }
                     break;
             }
-
+            Thread.Sleep(20); // Add some delay incase user handle too fast
         }
+
         private static string RemoveLastChar(string content)
         {
             if (content.Length > 0)
@@ -287,7 +302,6 @@ namespace Calculator_WPF
             return crcString;
         }
 
-
         private void HandleEnter()
         {
             switch (runtimeState)
@@ -308,6 +322,7 @@ namespace Calculator_WPF
                     break;
             }
         }
+
         private void HandleNext()
         {
             switch (runtimeState)
@@ -316,11 +331,10 @@ namespace Calculator_WPF
                     cmd_msg = string.Format("{0},0,102,{1},0,", tellerID, currentNumber); // END NUMBER 1,0,102,1002,0,2D
                     cmd_msg += CalculateCRC(cmd_msg);
                     tcpClient.Send(cmd_msg);
-                    Debug.WriteLine("SEND: " + cmd_msg);
+                    Thread.Sleep(50);
                     cmd_msg = string.Format("{0},0,107,0,0,", tellerID); // NEW_CALL 1,0,107,0,0,1B
                     cmd_msg += CalculateCRC(cmd_msg);
                     tcpClient.Send(cmd_msg);
-                    Debug.WriteLine("SEND: " + cmd_msg);
                     break;
 
                 default:
@@ -328,6 +342,7 @@ namespace Calculator_WPF
                     break;
             }
         }
+
         private void HandleCall()
         {
             switch (runtimeState)
