@@ -7,6 +7,7 @@
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>True</UseWindowsForms>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,8 +15,13 @@
     <None Remove="close_btn.png" />
     <None Remove="fqs_logo.png" />
     <None Remove="fqs_logo.svg" />
+    <None Remove="icon.ico" />
     <None Remove="maximize_btn.png" />
     <None Remove="minimize_btn.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="icon.ico" />
   </ItemGroup>
 
   <ItemGroup>
@@ -23,6 +29,7 @@
     <Resource Include="close_btn.png" />
     <Resource Include="fqs_logo.png" />
     <Resource Include="fqs_logo.svg" />
+    <Resource Include="icon.ico" />
     <Resource Include="maximize_btn.png" />
     <Resource Include="minimize_btn.png" />
   </ItemGroup>

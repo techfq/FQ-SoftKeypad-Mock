@@ -11,6 +11,7 @@ using static System.Windows.Forms.AxHost;
 using System.Text;
 using System.Windows.Interop;
 using System.Threading;
+using System.IO;
 
 namespace Calculator_WPF
 {
@@ -41,11 +42,20 @@ namespace Calculator_WPF
 
         private TcpClientListener tcpClient;
         private IniFile iniFile;
+        //private LicenseValidation license;
         private bool isConnected = false;
 
         public MainWindow()
         {
             InitializeComponent();
+            LicenseInput licenseInput = new LicenseInput();
+            if (!licenseInput.isValid())
+            {
+                if (licenseInput.ShowDialog() != true)
+                {
+                    Application.Current.Shutdown();
+                }
+            }
 
             iniFile = new IniFile(configFileName);
             tcp_ip = iniFile.ReadValue(TCPIP.TCPNAME, TCPIP.ADDRESS, "127.0.0.1");
