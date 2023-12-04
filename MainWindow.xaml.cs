@@ -47,7 +47,7 @@ namespace Calculator_WPF
 
         public MainWindow()
         {
-            InitializeComponent();
+            
             LicenseInput licenseInput = new LicenseInput();
             if (!licenseInput.isValid())
             {
@@ -56,6 +56,7 @@ namespace Calculator_WPF
                     Application.Current.Shutdown();
                 }
             }
+            InitializeComponent();
 
             iniFile = new IniFile(configFileName);
             tcp_ip = iniFile.ReadValue(TCPIP.TCPNAME, TCPIP.ADDRESS, "127.0.0.1");

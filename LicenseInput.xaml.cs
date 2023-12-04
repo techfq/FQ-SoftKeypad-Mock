@@ -171,7 +171,7 @@ namespace Calculator_WPF
 
         private static string HashLicenseKey(string licenseKey)
         {
-            string APP_SECRET_KEY = "YourSecretKey";
+            string APP_SECRET_KEY = "FQK-v1.0";
             using (SHA256 sha256 = SHA256.Create())
             {
                 byte[] bytes = Encoding.UTF8.GetBytes(licenseKey + APP_SECRET_KEY);

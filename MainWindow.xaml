@@ -7,7 +7,7 @@
         mc:Ignorable="d"
         ResizeMode="NoResize"
         WindowStyle="None"
-        Title="FQS - Keypad" Height="425" Width="320" Background="#FFEDFBFC" Icon="/icon.ico">
+        Title="FQS - Keypad" Height="425" Width="320" Background="#FFEDFBFC">
 
     <Window.Resources >
         <Style x:Key="FocusVisual">
