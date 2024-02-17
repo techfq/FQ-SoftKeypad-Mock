@@ -56,7 +56,7 @@ public class TcpClientListener
         }
         catch (Exception ex)
         {
-            Console.WriteLine("Error disconnecting from the server: " + ex.Message);
+            Debug.WriteLine("Error disconnecting from the server: " + ex.Message);
         }
     }
 
