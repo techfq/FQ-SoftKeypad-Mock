@@ -12,9 +12,6 @@ using System.Text;
 using System.Windows.Interop;
 using System.Threading;
 using System.IO;
-using System.Windows.Threading;
-using Calculator_WPF.Utilities;
-using Microsoft.VisualBasic.ApplicationServices;
 using System.Threading.Tasks;
 
 namespace Calculator_WPF
@@ -28,6 +25,9 @@ namespace Calculator_WPF
         private int currentNumber = 0;
         private string cmd_msg = "";
         private string configFileName = "config.ini";
+
+        private bool isMonitoring = true;
+        private Task monitoringTask;
 
         public enum APPSTATE
         {
@@ -82,27 +82,29 @@ namespace Calculator_WPF
                 lb_display.Content = currentInput;
             }
 
+            currentInput = $"{tellerID.ToString("D2")}00";
+            lb_display.Content = $"{currentInput}";
+
             MouseLeftButtonDown += MainWindow_MouseLeftButtonDown;
             double leftPosition = SystemParameters.PrimaryScreenWidth - Width - 20;
             Left = leftPosition;
             Top = 20;
             PreviewKeyUp += OnPreviewKeyDown;
 
-            tcpClient.MessageReceived += OnMessageReceived;
-            tcpClient.ConnectionStatusChanged += ConnectionStatusChanged;
+            monitoringTask = Task.Run(() => MonitorServerStatusAsync());
 
             if (autoConnect)
             {
-                Task.Run(() => ConnectAndListen(tcp_ip, tcp_port));
+                ConnectToServer();  
             }
 
             if (result.LsType != "888")
             {
                 int dayDifference = 1;
                 Debug.WriteLine(result.EndDate);
-                
-                if(result.EndDate == string.Empty) 
-                { 
+
+                if (result.EndDate == string.Empty)
+                {
                     result.EndDate = DateTime.Now.AddDays(1).ToString();
                     lbLicenseDate.Content = $"Activated";
                 }
@@ -113,7 +115,7 @@ namespace Calculator_WPF
                         dayDifference = (int)(DateTime.Parse(result.EndDate) - DateTime.Today).TotalDays;
                         lbLicenseDate.Content = $"{dayDifference} days";
                     }
-                    catch 
+                    catch
                     {
                         File.Delete("license.lic");
                         Application.Current.Shutdown();
@@ -130,19 +132,46 @@ namespace Calculator_WPF
             {
                 lbLicenseDate.Content = $"Activated";
             }
-
         }
 
-        private async Task ConnectAndListen(string serverIpAddress, int serverPort)
+        private void MonitorServerStatusAsync()
         {
-            while (!isConnected)
+            while (isMonitoring)
             {
-                isConnected = tcpClient.Connect(serverIpAddress, serverPort);
-
-                if (!isConnected)
+                if(tcpClient != null)
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(5));
-                    Debug.WriteLine("Retry connection ...!");
+                    if (!tcpClient.IsConnected())
+                    {
+                        Debug.WriteLine("Retry connect !!!");
+                        isConnected = false;
+                        Dispatcher.Invoke(() =>
+                        {
+                            btn_connect.Content = "Disconnect";
+                            btn_connect.Background = new SolidColorBrush(Color.FromRgb(0xED, 0x32, 0x37)); // #ED3237
+                        });
+                        ConnectToServer();
+                    }
+                }
+                Task.Delay(TimeSpan.FromSeconds(5)).Wait(); // Adjust the interval as needed
+            }
+        }
+
+        private void ConnectToServer()
+        {
+            if (!isConnected)
+            {
+                tcpClient = new TcpClientListener(Dispatcher);
+                if (tcpClient.Connect(tcp_ip, tcp_port))
+                {
+                    isConnected = true;
+                    Dispatcher.Invoke(() =>
+                    {
+                        btn_connect.Content = "Connected";
+                        btn_connect.Background = new SolidColorBrush(Color.FromRgb(0x70, 0xD8, 0x80)); //#70D880
+                    });
+
+                    tcpClient.MessageReceived += OnMessageReceived;
+                    tcpClient.Send($"DEVTYPE01{tellerID:D2}");
                 }
             }
         }
@@ -252,7 +281,18 @@ namespace Calculator_WPF
         {
             if (!isConnected)
             {
-                isConnected = tcpClient.Connect(tcp_ip, tcp_port);
+                tcpClient = new TcpClientListener(Dispatcher);
+                if (tcpClient.Connect(tcp_ip, tcp_port))
+                {
+                    isConnected = true;
+                    btn_connect.Content = "Disconnect";
+                    btn_connect.Background = new SolidColorBrush(
+                        Color.FromArgb(0xFF, 0x18, 0x8E, 0x08)
+                    );
+                    tcpClient.Send($"DEVTYPE01{tellerID:D2}");
+
+                    tcpClient.MessageReceived += OnMessageReceived;
+                }
             }
             else
             {
@@ -312,16 +352,7 @@ namespace Calculator_WPF
                     if (runtimeState != APPSTATE.LOGIN)
                     {
                         runtimeState = APPSTATE.LOGIN;
-                        if (counterID == tellerID)
-                        {
-                            currentInput = $"{counterID.ToString("D2")}00";
-                            lb_display.Content = currentInput;
-                        }
-                        else
-                        {
-                            currentInput = $"{counterID.ToString("D2")}{tellerID.ToString("D2")}";
-                            lb_display.Content = currentInput;
-                        }
+                        lb_display.Content = $"{tellerID.ToString("D2")}00";
                         btn_enter.Content = "ENTER";
                     }
                     break;
@@ -423,20 +454,14 @@ namespace Calculator_WPF
             switch (runtimeState)
             {
                 case APPSTATE.LOGIN:
-                    Debug.WriteLine(currentInput + " " + currentInput.Length);
-                    if (currentInput.Length != 4)
-                        return;
-                    counterID = int.Parse(currentInput[0..^2]); // [COUNTER ID][TELLER ID]
-                    tellerID = int.Parse(currentInput[^2..]);
-                    Debug.WriteLine(counterID + " " + tellerID);
-                    if (counterID < 1 || counterID > 100)
-                        return;
-                    if (tellerID == 0)
-                        tellerID = counterID;
-
-                    cmd_msg = string.Format("{0},0,100,{1},0,", counterID, tellerID); // 1,0,100,1,0,1D
-                    cmd_msg += CalculateCRC(cmd_msg);
-                    tcpClient.SendData(cmd_msg);
+                    tellerID = int.Parse(currentInput[0..^2]);
+                    if (tellerID < 100)
+                    {
+                        cmd_msg = string.Format("{0},0,100,{1},0,", tellerID, tellerID); // 1,0,100,1,0,1D
+                        cmd_msg += CalculateCRC(cmd_msg);
+                        Debug.WriteLine(cmd_msg);
+                        tcpClient.Send(cmd_msg);
+                    }
                     break;
 
                 default:
