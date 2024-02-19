@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net6.0-windows</TargetFramework>
@@ -9,7 +8,6 @@
     <UseWindowsForms>True</UseWindowsForms>
     <ApplicationIcon>icon.ico</ApplicationIcon>
   </PropertyGroup>
-
   <ItemGroup>
     <None Remove="close_btn.bmp" />
     <None Remove="close_btn.png" />
@@ -19,15 +17,12 @@
     <None Remove="maximize_btn.png" />
     <None Remove="minimize_btn.png" />
   </ItemGroup>
-
   <ItemGroup>
     <Content Include="icon.ico" />
   </ItemGroup>
-
   <ItemGroup>
     <PackageReference Include="System.Management" Version="8.0.0" />
   </ItemGroup>
-
   <ItemGroup>
     <Resource Include="close_btn.bmp" />
     <Resource Include="close_btn.png" />
@@ -37,5 +32,4 @@
     <Resource Include="maximize_btn.png" />
     <Resource Include="minimize_btn.png" />
   </ItemGroup>
-
 </Project>

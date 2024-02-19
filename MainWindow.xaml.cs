@@ -21,7 +21,6 @@ namespace Calculator_WPF
         private string currentInput = "";
         private string currentOperator = "None";
         private int tellerID = 1;
-        private int counterID = 1;
         private int currentNumber = 0;
         private string cmd_msg = "";
         private string configFileName = "config.ini";
@@ -44,11 +43,13 @@ namespace Calculator_WPF
 
         private string tcp_ip = "127.0.0.1";
         private int tcp_port = 5000;
+
+        private TcpClientListener tcpClient;
         private IniFile iniFile;
-        private bool isConnected = false;
         private bool autoConnect = false;
 
-        private TcpClientHandle tcpClient = new TcpClientHandle();
+        //private LicenseValidation license;
+        private bool isConnected = false;
 
         public MainWindow()
         {
@@ -66,21 +67,9 @@ namespace Calculator_WPF
 
             iniFile = new IniFile(configFileName);
             tcp_ip = iniFile.ReadValue(TCPIP.TCPNAME, TCPIP.ADDRESS, "127.0.0.1");
-            tcp_port = int.Parse(iniFile.ReadValue(TCPIP.TCPNAME, TCPIP.PORT, "5000"));
-            counterID = int.Parse(iniFile.ReadValue(USER.NAME, USER.COUNTERID, "1"));
+            tcp_port = int.Parse(iniFile.ReadValue(TCPIP.TCPNAME, TCPIP.PORT, "1000"));
             tellerID = int.Parse(iniFile.ReadValue(USER.NAME, USER.TELLERID, "1"));
             autoConnect = iniFile.ReadValue(USER.NAME, USER.AUTOCONNECT, "0") == "1" ? true : false;
-
-            if (counterID == tellerID)
-            {
-                currentInput = $"{counterID.ToString("D2")}00";
-                lb_display.Content = currentInput;
-            }
-            else
-            {
-                currentInput = $"{counterID.ToString("D2")}{tellerID.ToString("D2")}";
-                lb_display.Content = currentInput;
-            }
 
             currentInput = $"{tellerID.ToString("D2")}00";
             lb_display.Content = $"{currentInput}";
@@ -95,7 +84,7 @@ namespace Calculator_WPF
 
             if (autoConnect)
             {
-                ConnectToServer();  
+                ConnectToServer();
             }
 
             if (result.LsType != "888")
@@ -112,7 +101,8 @@ namespace Calculator_WPF
                 {
                     try
                     {
-                        dayDifference = (int)(DateTime.Parse(result.EndDate) - DateTime.Today).TotalDays;
+                        dayDifference = (int)
+                            (DateTime.Parse(result.EndDate) - DateTime.Today).TotalDays;
                         lbLicenseDate.Content = $"{dayDifference} days";
                     }
                     catch
@@ -138,7 +128,7 @@ namespace Calculator_WPF
         {
             while (isMonitoring)
             {
-                if(tcpClient != null)
+                if (tcpClient != null)
                 {
                     if (!tcpClient.IsConnected())
                     {
@@ -147,7 +137,9 @@ namespace Calculator_WPF
                         Dispatcher.Invoke(() =>
                         {
                             btn_connect.Content = "Disconnect";
-                            btn_connect.Background = new SolidColorBrush(Color.FromRgb(0xED, 0x32, 0x37)); // #ED3237
+                            btn_connect.Background = new SolidColorBrush(
+                                Color.FromRgb(0xED, 0x32, 0x37)
+                            ); // #ED3237
                         });
                         ConnectToServer();
                     }
@@ -167,7 +159,9 @@ namespace Calculator_WPF
                     Dispatcher.Invoke(() =>
                     {
                         btn_connect.Content = "Connected";
-                        btn_connect.Background = new SolidColorBrush(Color.FromRgb(0x70, 0xD8, 0x80)); //#70D880
+                        btn_connect.Background = new SolidColorBrush(
+                            Color.FromRgb(0x70, 0xD8, 0x80)
+                        ); //#70D880
                     });
 
                     tcpClient.MessageReceived += OnMessageReceived;
@@ -183,79 +177,38 @@ namespace Calculator_WPF
             Application.Current.Shutdown();
         }
 
-        private void ConnectionStatusChanged(object sender, bool isServerConnected)
-        {
-            if (isServerConnected)
-            {
-                Debug.WriteLine("Connection established.");
-                isConnected = true;
-                Dispatcher.Invoke(() =>
-                {
-                    btn_connect.Content = "Connected";
-                    btn_connect.Background = new SolidColorBrush(Color.FromRgb(0x70, 0xD8, 0x80)); //#70D880
-                });
-            }
-            else
-            {
-                isConnected = false;
-                Dispatcher.Invoke(() =>
-                {
-                    btn_connect.Content = "Disconnect";
-                    btn_connect.Background = new SolidColorBrush(Color.FromRgb(0xED, 0x32, 0x37)); // #ED3237
-                });
-                if (autoConnect)
-                {
-                    Task.Run(() => ConnectAndListen(tcp_ip, tcp_port));
-                }
-            }
-        }
-
-        private void OnMessageReceived(object sender, string rx_mgs)
+        private void OnMessageReceived(string rx_mgs)
         {
             Debug.WriteLine(rx_mgs);
-
-            char STX = (char)2;
-            char ETX = (char)3;
-            if (rx_mgs[0] != STX && rx_mgs[^1] != ETX) return;
-
-            rx_mgs = rx_mgs[1..^1]; // Remove STX, ETX
-            if (!tcpClient.IsValidChecksum(rx_mgs)) return;
-            string[] cmds = rx_mgs.Split(',');
-            if (cmds.Length > 3)
+            if (rx_mgs.Length >= 7)
             {
-                if (int.Parse(cmds[1]) != counterID) return;
-                if (cmds[2] == "103")
+                rx_mgs = rx_mgs[1..^1];
+                string[] cmds = rx_mgs.Split(',');
+                if (cmds.Length > 4)
                 {
-                    int number = int.Parse(cmds[3]);
-                    if (number > 0)
+                    if (cmds[2] == "103")
                     {
-                        currentNumber = number;
-                        Dispatcher.Invoke(() =>
+                        int number = int.Parse(cmds[3]);
+                        if (number > 0)
                         {
+                            currentNumber = number;
                             lb_display.Content = number.ToString("D4");
-                        });
-                    }
-                    else
-                    {
-                        Dispatcher.Invoke(() =>
+                        }
+                        else
                         {
                             lb_display.Content = "Hết khách";
-                        });
-                    }
-                    if (runtimeState == APPSTATE.LOGIN)
-                    {
-                        iniFile.WriteValue(USER.NAME, USER.TELLERID, tellerID.ToString());
-                        iniFile.WriteValue(USER.NAME, USER.COUNTERID, counterID.ToString());
-                        iniFile.Save(configFileName);
-                        tcpClient.SendData($"DEVTYPE01{counterID:D2}");
-                    }
-                    if (runtimeState != APPSTATE.CALL_NUM)
-                    {
-                        runtimeState = APPSTATE.CALL_NUM;
-                        Dispatcher.Invoke(() =>
+                        }
+                        if (runtimeState == APPSTATE.LOGIN)
                         {
+                            iniFile.WriteValue(USER.NAME, USER.TELLERID, tellerID.ToString());
+                            iniFile.Save(configFileName);
+                            tcpClient.Send($"DEVTYPE01{tellerID:D2}");
+                        }
+                        if (runtimeState != APPSTATE.CALL_NUM)
+                        {
+                            runtimeState = APPSTATE.CALL_NUM;
                             btn_enter.Content = "NEXT";
-                        });
+                        }
                     }
                 }
             }
@@ -269,6 +222,7 @@ namespace Calculator_WPF
                 {
                     tcpClient.Disconnect();
                     isConnected = false;
+                    Application.Current.Shutdown();
                 }
             }
             catch (Exception ex)
@@ -296,10 +250,10 @@ namespace Calculator_WPF
             }
             else
             {
-                if (tcpClient.Disconnect())
-                {
-                    isConnected = false;
-                }
+                tcpClient.Disconnect();
+                isConnected = false;
+                btn_connect.Content = "Disconnect";
+                btn_connect.Background = new SolidColorBrush(Color.FromRgb(0xED, 0x32, 0x37)); // #ED3237
             }
         }
 
@@ -386,16 +340,7 @@ namespace Calculator_WPF
                     if (runtimeState != APPSTATE.LOGIN)
                     {
                         runtimeState = APPSTATE.LOGIN;
-                        if (counterID == tellerID)
-                        {
-                            currentInput = $"{counterID.ToString("D2")}00";
-                            lb_display.Content = currentInput;
-                        }
-                        else
-                        {
-                            currentInput = $"{counterID.ToString("D2")}{tellerID.ToString("D2")}";
-                            lb_display.Content = currentInput;
-                        }
+                        lb_display.Content = $"{tellerID.ToString("D2")}00";
                         btn_enter.Content = "ENTER";
                     }
                     break;
@@ -477,11 +422,11 @@ namespace Calculator_WPF
                 case APPSTATE.CALL_NUM:
                     cmd_msg = string.Format("{0},0,102,{1},0,", tellerID, currentNumber); // END NUMBER 1,0,102,1002,0,2D
                     cmd_msg += CalculateCRC(cmd_msg);
-                    tcpClient.SendData(cmd_msg);
+                    tcpClient.Send(cmd_msg);
                     Thread.Sleep(50);
                     cmd_msg = string.Format("{0},0,107,0,0,", tellerID); // NEW_CALL 1,0,107,0,0,1B
                     cmd_msg += CalculateCRC(cmd_msg);
-                    tcpClient.SendData(cmd_msg);
+                    tcpClient.Send(cmd_msg);
                     break;
 
                 default:
@@ -500,7 +445,7 @@ namespace Calculator_WPF
                     {
                         cmd_msg = string.Format("{0},0,107,{1},0,", tellerID, input_number); // RE_CALL 1,0,107,0,0,1B
                         cmd_msg += CalculateCRC(cmd_msg);
-                        tcpClient.SendData(cmd_msg);
+                        tcpClient.Send(cmd_msg);
                     }
                     break;
             }
