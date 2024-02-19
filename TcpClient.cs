@@ -7,6 +7,7 @@ using System.Threading;
 using System.Windows.Threading;
 using System.Diagnostics;
 using System.Windows.Forms;
+using System.Net.Http;
 
 public class TcpClientListener
 {
@@ -21,6 +22,11 @@ public class TcpClientListener
     {
         client = new TcpClient();
         uiDispatcher = dispatcher;
+    }
+
+    public bool IsConnected()
+    {
+        return client != null && client.Client != null && client.Client.Connected;
     }
 
     public bool Connect(string serverIp, int serverPort)

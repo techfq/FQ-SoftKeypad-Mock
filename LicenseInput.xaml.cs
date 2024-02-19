@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -9,14 +12,13 @@ using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Security.Cryptography;
+using System.Management;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
-using System.Security.Cryptography;
-using System.Diagnostics;
-using System.Net.NetworkInformation;
 using System.IO;
-using System.Text.RegularExpressions;
-using System.ComponentModel;
+using System.Security.Policy;
+using System.Windows.Navigation;
 
 namespace Calculator_WPF
 {
@@ -24,141 +26,215 @@ namespace Calculator_WPF
     {
         public string Public { get; set; }
         public string Secret { get; set; }
+        public string EndDate { get; set; }
+        public string LsType { get; set; }
+        public bool Status { get; set; }
 
-        public LicenseKey(string licensePublic, string licenseSecret)
+        public LicenseKey(
+            string licensePublic,
+            string licenseSecret,
+            string licenseEnd,
+            string lsType,
+            bool status = false
+        )
         {
             Public = licensePublic;
             Secret = licenseSecret;
+            EndDate = licenseEnd;
+            LsType = lsType;
+            Status = status;
         }
     }
+
     public partial class LicenseInput : Window
     {
         public string licenseFilePath = "license.lic";
 
-
         public LicenseInput()
         {
             InitializeComponent();
-            
         }
 
-        public bool isValid()
+        private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
         {
-            LicenseKey license = new LicenseKey();
-            license = generateLicenseKey();
-
-            bool isValidLicense = IsLicenseValid(license.Public, license.Secret);
-            if (isValidLicense)
-            {
-                Debug.WriteLine("VALID");
-                this.Close();
-                return true;
-            }
-            else
-            {
-                tb_public_key.Text = license.Public;
-                Debug.WriteLine($"INVALID: {license.Public}");
-                Debug.WriteLine($"USERKEY: {license.Secret}");
-                return false;
-            }
+            // Your click event handling logic goes here
+            Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+            e.Handled = true;
         }
 
         private void btn_activate_license_Click(object sender, RoutedEventArgs e)
         {
             string public_key = tb_public_key.Text;
-            string secret_key = tb_secret_key.Text.ToLower();
-            bool isValidLicense = IsLicenseValid(public_key, secret_key);
-            if (isValidLicense)
+            string secret_key = tb_secret_key.Text.ToUpper();
+            string licenseType = "0";
+            bool isValidLicense = false;
+            if (IsLicenseValid(public_key + "45", secret_key))
             {
-                btn_activate_license.Content = "SUCCESS";
-                Debug.WriteLine("VALID");
-                string macAddress = GetMacAddress();
-                string licenseContent = $"###FAST_QUEUE_PUBLIC####MAC#{macAddress}#MAC#####FAST_QUEUE_PUBLIC###";
-                string licenseSecretKey = $"###FAST_QUEUE_SYS###{secret_key}###FAST_QUEUE_SYS###";
-                string saveContent = licenseContent + licenseSecretKey;
-                LicenseFile.SaveLicenseFile(licenseFilePath, saveContent);
-                DialogResult = true;
-                this.Close();
+                isValidLicense = true;
+                licenseType = "45";
+            }
+            else if (IsLicenseValid(public_key + "65", secret_key))
+            {
+                isValidLicense = true;
+                licenseType = "65";
+            }
+            else if (IsLicenseValid(public_key + "888", secret_key))
+            {
+                isValidLicense = true;
+                licenseType = "888";
             }
             else
             {
-                btn_activate_license.Background = new SolidColorBrush(Color.FromArgb(0xFF, 0xF5, 0x77, 0x3C));
-                btn_activate_license.BorderBrush = new SolidColorBrush(Color.FromArgb(0xFF, 0xF5, 0x77, 0x3C));
+                btn_activate_license.Background = new SolidColorBrush(
+                    Color.FromArgb(0xFF, 0xF5, 0x77, 0x3C)
+                );
+                btn_activate_license.BorderBrush = new SolidColorBrush(
+                    Color.FromArgb(0xFF, 0xF5, 0x77, 0x3C)
+                );
                 btn_activate_license.Content = "INVALID";
                 Debug.WriteLine($"INVALID: {public_key}");
             }
+
+            if (isValidLicense)
+            {
+                btn_activate_license.Content = "SUCCESS";
+                string deviceUuid = GetDeviceId();
+                string deviceKey =
+                    $"###FAST_QUEUE_PUBLIC####MAC#{deviceUuid}#MAC#####FAST_QUEUE_PUBLIC###";
+
+                string licenseSecretKey = $"###FAST_QUEUE_SYS###{secret_key}###FAST_QUEUE_SYS###";
+
+                DateTime endDate = DateTime.Now.AddDays(int.Parse(licenseType));
+                string activateDate = $"###ENDDATE###{endDate}###ENDDATE###";
+
+                string saveLicenseType = $"###LSTYPE###{licenseType}###LSTYPE###";
+                string saveContent = deviceKey + licenseSecretKey + activateDate + saveLicenseType;
+                LicenseFile.SaveLicenseFile(licenseFilePath, saveContent);
+
+                DialogResult = true;
+                this.Close();
+            }
         }
 
-        public bool IsLicenseValid(string publicKey, string secretKey)
+        public LicenseKey IsValid()
         {
-            bool isValid = false;
-            DateTime currentDate = DateTime.Now;
+            LicenseKey license = generateLicenseKey();
+            Debug.WriteLine("IsValid: " + license.Public + license.LsType);
+            if (IsLicenseValid(license.Public + license.LsType, license.Secret))
+            {
+                Debug.WriteLine("VALID");
+                license.Status = true;
+                return license;
+            }
+            else
+            {
+                license.Status = false;
+                tb_public_key.Text = license.Public;
+                Debug.WriteLine($"INVALID: {license.Public}");
+            }
+            return license;
+        }
 
+        private static bool IsLicenseValid(string publicKey, string secretKey)
+        {
             try
             {
                 string generateSecretKey = HashLicenseKey(publicKey).Substring(1, 8);
 
                 if (secretKey == generateSecretKey)
                 {
-                    isValid = true;
+                    return true;
                 }
                 else
                 {
                     Debug.WriteLine("You need to activate software license with below key:");
-                    Debug.WriteLine($"{publicKey}");
-                    Debug.WriteLine(generateSecretKey);
-                    isValid = false;
+                    Debug.WriteLine($"Pub: {publicKey}");
+                    Debug.WriteLine($"Pri: {generateSecretKey}");
                 }
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Failed to load the license file. " + ex.Message);
-                isValid = false;
             }
-            return isValid;
+            return false;
         }
 
-        public LicenseKey generateLicenseKey()
+        private LicenseKey generateLicenseKey()
         {
+            Debug.WriteLine("Run generateLicenseKey!");
             try
             {
                 string userSecretKey = "";
+                string lsEndDate = "";
+                string lsType = "";
                 if (File.Exists(licenseFilePath))
                 {
                     string readLicense = LicenseFile.LoadLicenseFile(licenseFilePath);
-                    userSecretKey = ExtractContent(readLicense, "###FAST_QUEUE_SYS###", "###FAST_QUEUE_SYS###");
+                    userSecretKey = ExtractContent(
+                        readLicense,
+                        "###FAST_QUEUE_SYS###",
+                        "###FAST_QUEUE_SYS###"
+                    );
+                    lsEndDate = ExtractContent(readLicense, "###ENDDATE###", "###ENDDATE###");
+                    lsType = ExtractContent(readLicense, "###LSTYPE###", "###LSTYPE###");
                 }
 
-                string macAddress = GetMacAddress();
-                string licenseContent = $"###FAST_QUEUE_PUBLIC####MAC#{macAddress}#MAC#####FAST_QUEUE_PUBLIC###";
-                string licenseSecretKey = $"###FAST_QUEUE_SYS###{userSecretKey}###FAST_QUEUE_SYS###";
+                string deviceUuid = GetDeviceId();
+                string deviceKey =
+                    $"###FAST_QUEUE_PUBLIC####MAC#{deviceUuid}#MAC#####FAST_QUEUE_PUBLIC###";
 
-                string saveContent = licenseContent + licenseSecretKey;
+                string licenseSecretKey =
+                    $"###FAST_QUEUE_SYS###{userSecretKey}###FAST_QUEUE_SYS###";
+
+                string saveEndDate = $"###ENDDATE###{lsEndDate}###ENDDATE###";
+                string saveLsType = $"###LSTYPE###{lsType}###LSTYPE###";
+                string saveContent = deviceKey + licenseSecretKey + saveEndDate + saveLsType;
                 LicenseFile.SaveLicenseFile(licenseFilePath, saveContent); // NEED TO SAVE THIS TO LICENSE FILE
-                LicenseKey license = new LicenseKey("ABC", "XYZ");
-                license.Public = HashLicenseKey(macAddress).Substring(1, 8).ToUpper();
-                license.Secret = userSecretKey;
+
+                string pub_lic = HashLicenseKey(deviceUuid).Substring(1, 8).ToUpper();
+                string pri_lic = userSecretKey;
+                LicenseKey license = new LicenseKey(pub_lic, pri_lic, lsEndDate, lsType);
                 return license;
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Failed to load the license file. " + ex.Message);
-                return new LicenseKey("XXX", "YYY");
+                return new LicenseKey("XXX", "YYY", "000", "000");
             }
         }
-        static string GetMacAddress()
+
+        private static string GetDeviceId()
         {
-            foreach (NetworkInterface nic in NetworkInterface.GetAllNetworkInterfaces())
+            try
             {
-                if (nic.OperationalStatus == OperationalStatus.Up && nic.NetworkInterfaceType != NetworkInterfaceType.Loopback)
+                using (
+                    ManagementObjectSearcher searcher = new ManagementObjectSearcher(
+                        "SELECT * FROM Win32_DiskDrive"
+                    )
+                )
                 {
-                    return nic.GetPhysicalAddress().ToString();
+                    // Iterate through the query results
+                    foreach (ManagementObject disk in searcher.Get())
+                    {
+                        // Get the serial number from the "SerialNumber" property
+                        string serialNumber = disk["SerialNumber"].ToString();
+
+                        // Return the serial number if found
+                        if (!string.IsNullOrEmpty(serialNumber))
+                        {
+                            return serialNumber;
+                        }
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error retrieving device identifier: " + ex.Message);
             }
             return string.Empty;
         }
 
-        static string ExtractContent(string input, string startTag, string endTag)
+        private static string ExtractContent(string input, string startTag, string endTag)
         {
             string pattern = Regex.Escape(startTag) + "(.*?)" + Regex.Escape(endTag);
             Match match = Regex.Match(input, pattern);
@@ -171,7 +247,7 @@ namespace Calculator_WPF
 
         private static string HashLicenseKey(string licenseKey)
         {
-            string APP_SECRET_KEY = "FQK-v1.0";
+            string APP_SECRET_KEY = "FQKeypad-v1.0";
             using (SHA256 sha256 = SHA256.Create())
             {
                 byte[] bytes = Encoding.UTF8.GetBytes(licenseKey + APP_SECRET_KEY);
@@ -184,7 +260,7 @@ namespace Calculator_WPF
                     stringBuilder.AppendFormat("{0:x2}", b);
                 }
 
-                return stringBuilder.ToString();
+                return stringBuilder.ToString().ToUpper();
             }
         }
     }

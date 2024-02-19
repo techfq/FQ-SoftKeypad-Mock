@@ -12,6 +12,7 @@ using System.Text;
 using System.Windows.Interop;
 using System.Threading;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Calculator_WPF
 {
@@ -23,6 +24,9 @@ namespace Calculator_WPF
         private int currentNumber = 0;
         private string cmd_msg = "";
         private string configFileName = "config.ini";
+
+        private bool isMonitoring = true;
+        private Task monitoringTask;
 
         public enum APPSTATE
         {
@@ -47,9 +51,10 @@ namespace Calculator_WPF
 
         public MainWindow()
         {
-            
             LicenseInput licenseInput = new LicenseInput();
-            if (!licenseInput.isValid())
+            LicenseKey result = licenseInput.IsValid();
+
+            if (!result.Status)
             {
                 if (licenseInput.ShowDialog() != true)
                 {
@@ -65,29 +70,97 @@ namespace Calculator_WPF
             bool autoConnect =
                 iniFile.ReadValue(USER.NAME, USER.AUTOCONNECT, "0") == "1" ? true : false;
 
-            currentInput = $"{tellerID}";
-            lb_display.Content = $"ID: {currentInput}";
+            currentInput = $"{tellerID.ToString("D2")}00";
+            lb_display.Content = $"{currentInput}";
+
             MouseLeftButtonDown += MainWindow_MouseLeftButtonDown;
             double leftPosition =
                 System.Windows.SystemParameters.PrimaryScreenWidth - this.Width - 20;
             this.Left = leftPosition;
             this.Top = 20;
             PreviewKeyUp += OnPreviewKeyDown;
+
+            monitoringTask = Task.Run(() => MonitorServerStatusAsync());
+
             if (autoConnect)
             {
-                if (!isConnected)
-                {
-                    tcpClient = new TcpClientListener(Dispatcher);
-                    if (tcpClient.Connect(tcp_ip, tcp_port))
-                    {
-                        isConnected = true;
-                        btn_connect.Content = "Disconnect";
-                        btn_connect.Background = new SolidColorBrush(
-                            Color.FromArgb(0xFF, 0x18, 0x8E, 0x08)
-                        );
+                ConnectToServer();  
+            }
 
-                        tcpClient.MessageReceived += OnMessageReceived;
+            if (result.LsType != "888")
+            {
+                int dayDifference = 1;
+                Debug.WriteLine(result.EndDate);
+
+                if (result.EndDate == string.Empty)
+                {
+                    result.EndDate = DateTime.Now.AddDays(1).ToString();
+                    lbLicenseDate.Content = $"Activated";
+                }
+                else
+                {
+                    try
+                    {
+                        dayDifference = (int)(DateTime.Parse(result.EndDate) - DateTime.Today).TotalDays;
+                        lbLicenseDate.Content = $"{dayDifference} days";
                     }
+                    catch
+                    {
+                        File.Delete("license.lic");
+                        Application.Current.Shutdown();
+                    }
+                }
+                Debug.WriteLine(dayDifference);
+                if (dayDifference < 1 || dayDifference > 70)
+                {
+                    File.Delete("license.lic");
+                    Application.Current.Shutdown();
+                }
+            }
+            else
+            {
+                lbLicenseDate.Content = $"Activated";
+            }
+        }
+
+        private void MonitorServerStatusAsync()
+        {
+            while (isMonitoring)
+            {
+                if(tcpClient != null)
+                {
+                    if (!tcpClient.IsConnected())
+                    {
+                        Debug.WriteLine("Retry connect !!!");
+                        isConnected = false;
+                        Dispatcher.Invoke(() =>
+                        {
+                            btn_connect.Content = "Disconnect";
+                            btn_connect.Background = new SolidColorBrush(Color.FromRgb(0xED, 0x32, 0x37)); // #ED3237
+                        });
+                        ConnectToServer();
+                    }
+                }
+                Task.Delay(TimeSpan.FromSeconds(5)).Wait(); // Adjust the interval as needed
+            }
+        }
+
+        private void ConnectToServer()
+        {
+            if (!isConnected)
+            {
+                tcpClient = new TcpClientListener(Dispatcher);
+                if (tcpClient.Connect(tcp_ip, tcp_port))
+                {
+                    isConnected = true;
+                    Dispatcher.Invoke(() =>
+                    {
+                        btn_connect.Content = "Connected";
+                        btn_connect.Background = new SolidColorBrush(Color.FromRgb(0x70, 0xD8, 0x80)); //#70D880
+                    });
+
+                    tcpClient.MessageReceived += OnMessageReceived;
+                    tcpClient.Send($"DEVTYPE01{tellerID:D2}");
                 }
             }
         }
@@ -163,6 +236,7 @@ namespace Calculator_WPF
                     btn_connect.Background = new SolidColorBrush(
                         Color.FromArgb(0xFF, 0x18, 0x8E, 0x08)
                     );
+                    tcpClient.Send($"DEVTYPE01{tellerID:D2}");
 
                     tcpClient.MessageReceived += OnMessageReceived;
                 }
@@ -225,7 +299,7 @@ namespace Calculator_WPF
                     if (runtimeState != APPSTATE.LOGIN)
                     {
                         runtimeState = APPSTATE.LOGIN;
-                        lb_display.Content = $"ID:{tellerID}";
+                        lb_display.Content = $"{tellerID.ToString("D2")}00";
                         btn_enter.Content = "ENTER";
                     }
                     break;
@@ -318,7 +392,7 @@ namespace Calculator_WPF
             switch (runtimeState)
             {
                 case APPSTATE.LOGIN:
-                    tellerID = int.Parse(currentInput);
+                    tellerID = int.Parse(currentInput[0..^2]);
                     if (tellerID < 100)
                     {
                         cmd_msg = string.Format("{0},0,100,{1},0,", tellerID, tellerID); // 1,0,100,1,0,1D

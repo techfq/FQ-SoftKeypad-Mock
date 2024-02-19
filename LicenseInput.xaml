@@ -9,11 +9,15 @@
         WindowStartupLocation="CenterScreen"
         Title="License Input" Height="250" Width="387">
     <Grid>
-        <TextBox x:Name="tb_public_key" TextWrapping="Wrap" Text="***" VerticalAlignment="Top" Height="35" FontSize="20" Margin="120,15,50,0"/>
-        <TextBox x:Name="tb_secret_key" TextWrapping="Wrap" Text="***" VerticalAlignment="Top" Height="35" FontSize="20" Margin="120,65,50,0"/>
-        <Label Content="Key A" HorizontalAlignment="Left" Margin="20,15,0,0" VerticalAlignment="Top" FontSize="20" Height="35" Width="100" HorizontalContentAlignment="Center"/>
-        <Label Content="Key B" HorizontalAlignment="Left" Margin="20,65,0,0" VerticalAlignment="Top" FontSize="20" Height="35" Width="100" HorizontalContentAlignment="Center" RenderTransformOrigin="0.54,0.087"/>
-        <Button x:Name="btn_activate_license" Content="Active" Width="122" FontSize="20" Height="34" Click="btn_activate_license_Click" VerticalAlignment="Top" Margin="0,125,0,0" Background="#FF85CCF9" BorderBrush="#FF85CCF9" Foreground="#FF01294E"/>
-        <Label x:Name="license_status" VerticalContentAlignment="Center" HorizontalAlignment="Center" Content="www.fastqueueapp.com | 0938 234 677" FontStyle="Italic" Margin="10,0,10,10" Height="30" VerticalAlignment="Bottom"/>
+        <TextBox x:Name="tb_public_key" TextWrapping="Wrap" Text="***" VerticalAlignment="Top" Height="35" FontSize="20" Margin="100,20,50,0"/>
+        <TextBox x:Name="tb_secret_key" TextWrapping="Wrap" Text="***" VerticalAlignment="Top" Height="35" FontSize="20" Margin="100,70,50,0"/>
+        <Label Content="Key A:" HorizontalAlignment="Left" Margin="20,20,0,0" VerticalAlignment="Top" FontSize="20" Height="35" Width="100"/>
+        <Label Content="Key B:" HorizontalAlignment="Left" Margin="20,70,0,0" VerticalAlignment="Top" FontSize="20" Height="35" Width="100"/>
+        <Button x:Name="btn_activate_license" Content="Active" Click="btn_activate_license_Click" Width="120" FontSize="20" Height="35" VerticalAlignment="Top" Background="#FF85CCF9" BorderBrush="#FF85CCF9" Foreground="#FF01294E"  Margin="0,125,0,0"/>
+        <TextBlock TextDecorations="None" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontStyle="Italic" Height="30" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,5" ToolTip="Go to our homepage for more information!">
+            <Hyperlink NavigateUri="https://www.fastqueueapp.com" RequestNavigate="Hyperlink_RequestNavigate" TextDecorations="None" >
+                <TextBlock Text="www.fastqueueapp.com" Foreground="#01294E" />
+            </Hyperlink>
+        </TextBlock>
     </Grid>
 </Window>
