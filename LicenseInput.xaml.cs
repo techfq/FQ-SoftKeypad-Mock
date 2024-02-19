@@ -104,7 +104,7 @@ namespace Calculator_WPF
 
                 string licenseSecretKey = $"###FAST_QUEUE_SYS###{secret_key}###FAST_QUEUE_SYS###";
 
-                DateTime endDate = DateTime.Now.AddDays(45);
+                DateTime endDate = DateTime.Now.AddDays(int.Parse(licenseType));
                 string activateDate = $"###ENDDATE###{endDate}###ENDDATE###";
 
                 string saveLicenseType = $"###LSTYPE###{licenseType}###LSTYPE###";

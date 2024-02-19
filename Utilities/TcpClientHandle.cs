@@ -106,11 +106,14 @@ namespace Calculator_WPF.Utilities
         {
             try
             {
-                if (tcpClient.Connected)
+                if (tcpClient != null)
                 {
-                    byte[] buffer = Encoding.UTF8.GetBytes(data);
-                    networkStream.Write(buffer, 0, buffer.Length);
-                    Debug.WriteLine("SEND: " + data);
+                    if (tcpClient.Connected)
+                    {
+                        byte[] buffer = Encoding.UTF8.GetBytes(data);
+                        networkStream.Write(buffer, 0, buffer.Length);
+                        Debug.WriteLine("SEND: " + data);
+                    }
                 }
             }
             catch (Exception ex)

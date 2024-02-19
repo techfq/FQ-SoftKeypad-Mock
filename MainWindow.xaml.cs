@@ -100,15 +100,30 @@ namespace Calculator_WPF
             {
                 int dayDifference = 1;
                 Debug.WriteLine(result.EndDate);
+                
                 if(result.EndDate == string.Empty) 
                 { 
-                    result.EndDate = DateTime.Now.AddDays(1).ToString(); 
+                    result.EndDate = DateTime.Now.AddDays(1).ToString();
+                    lbLicenseDate.Content = $"Activated";
                 }
-                dayDifference = (int)(DateTime.Parse(result.EndDate) - DateTime.Today).TotalDays;
-                lbLicenseDate.Content = $"{dayDifference} days";
-                if (dayDifference < 1)
+                else
+                {
+                    try
+                    {
+                        dayDifference = (int)(DateTime.Parse(result.EndDate) - DateTime.Today).TotalDays;
+                        lbLicenseDate.Content = $"{dayDifference} days";
+                    }
+                    catch 
+                    {
+                        File.Delete("license.lic");
+                        Application.Current.Shutdown();
+                    }
+                }
+                Debug.WriteLine(dayDifference);
+                if (dayDifference < 1 || dayDifference > 70)
                 {
                     File.Delete("license.lic");
+                    Application.Current.Shutdown();
                 }
             }
             else
@@ -172,17 +187,14 @@ namespace Calculator_WPF
 
             char STX = (char)2;
             char ETX = (char)3;
-            if (rx_mgs[0] != STX && rx_mgs[^1] != ETX)
-                return;
+            if (rx_mgs[0] != STX && rx_mgs[^1] != ETX) return;
 
             rx_mgs = rx_mgs[1..^1]; // Remove STX, ETX
-            if (!tcpClient.IsValidChecksum(rx_mgs))
-                return;
+            if (!tcpClient.IsValidChecksum(rx_mgs)) return;
             string[] cmds = rx_mgs.Split(',');
             if (cmds.Length > 3)
             {
-                if (int.Parse(cmds[1]) != counterID)
-                    return;
+                if (int.Parse(cmds[1]) != counterID) return;
                 if (cmds[2] == "103")
                 {
                     int number = int.Parse(cmds[3]);
@@ -206,6 +218,7 @@ namespace Calculator_WPF
                         iniFile.WriteValue(USER.NAME, USER.TELLERID, tellerID.ToString());
                         iniFile.WriteValue(USER.NAME, USER.COUNTERID, counterID.ToString());
                         iniFile.Save(configFileName);
+                        tcpClient.SendData($"DEVTYPE01{counterID:D2}");
                     }
                     if (runtimeState != APPSTATE.CALL_NUM)
                     {
