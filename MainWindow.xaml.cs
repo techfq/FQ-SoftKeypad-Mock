@@ -168,7 +168,7 @@ namespace Calculator_WPF
 
         private void OnMessageReceived(object sender, string rx_mgs)
         {
-            Debug.WriteLine(rx_mgs);
+            Debug.WriteLine("RX: "+rx_mgs);
 
             char STX = (char)2;
             char ETX = (char)3;
@@ -439,7 +439,7 @@ namespace Calculator_WPF
                 case APPSTATE.CALL_NUM:
                     cmd_msg = string.Format("{0},0,102,{1},0,", tellerID, currentNumber); // END NUMBER 1,0,102,1002,0,2D
                     cmd_msg += CalculateCRC(cmd_msg);
-                    tcpClient.SendData(cmd_msg);
+                    // tcpClient.SendData(cmd_msg);
                     Thread.Sleep(50);
                     cmd_msg = string.Format("{0},0,107,0,0,", tellerID); // NEW_CALL 1,0,107,0,0,1B
                     cmd_msg += CalculateCRC(cmd_msg);
@@ -460,7 +460,7 @@ namespace Calculator_WPF
                     string input_number = ("" + lb_display.Content.ToString()).Trim();
                     if (input_number.Length < 5)
                     {
-                        cmd_msg = string.Format("{0},0,107,{1},0,", tellerID, input_number); // RE_CALL 1,0,107,0,0,1B
+                        cmd_msg = string.Format("{0},0,177,{1},0,", tellerID, input_number); // RE_CALL 1,0,107,0,0,1B
                         cmd_msg += CalculateCRC(cmd_msg);
                         tcpClient.SendData(cmd_msg);
                     }
