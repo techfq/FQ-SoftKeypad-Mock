@@ -9,7 +9,7 @@
         WindowStartupLocation="CenterScreen"
         Title="License Input" Height="250" Width="387">
     <Grid>
-        <TextBox x:Name="tb_public_key" TextWrapping="Wrap" Text="***" VerticalAlignment="Top" Height="35" FontSize="20" Margin="100,20,50,0"/>
+        <TextBox x:Name="tb_public_key" TextWrapping="Wrap" Text="***" VerticalAlignment="Top" Height="35" FontSize="20" Margin="100,20,50,0" IsEnabled="False"/>
         <TextBox x:Name="tb_secret_key" TextWrapping="Wrap" Text="***" VerticalAlignment="Top" Height="35" FontSize="20" Margin="100,70,50,0"/>
         <Label Content="Key A:" HorizontalAlignment="Left" Margin="20,20,0,0" VerticalAlignment="Top" FontSize="20" Height="35" Width="100"/>
         <Label Content="Key B:" HorizontalAlignment="Left" Margin="20,70,0,0" VerticalAlignment="Top" FontSize="20" Height="35" Width="100"/>

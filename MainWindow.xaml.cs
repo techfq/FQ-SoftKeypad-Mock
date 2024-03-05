@@ -100,9 +100,9 @@ namespace Calculator_WPF
             {
                 int dayDifference = 1;
                 Debug.WriteLine(result.EndDate);
-                if(result.EndDate == string.Empty) 
-                { 
-                    result.EndDate = DateTime.Now.AddDays(1).ToString(); 
+                if (result.EndDate == string.Empty)
+                {
+                    result.EndDate = DateTime.Now.AddDays(1).ToString();
                 }
                 dayDifference = (int)(DateTime.Parse(result.EndDate) - DateTime.Today).TotalDays;
                 lbLicenseDate.Content = $"{dayDifference} days";
@@ -168,7 +168,7 @@ namespace Calculator_WPF
 
         private void OnMessageReceived(object sender, string rx_mgs)
         {
-            Debug.WriteLine("RX: "+rx_mgs);
+            Debug.WriteLine("RX: " + rx_mgs);
 
             char STX = (char)2;
             char ETX = (char)3;
@@ -181,8 +181,8 @@ namespace Calculator_WPF
             string[] cmds = rx_mgs.Split(',');
             if (cmds.Length > 3)
             {
-                if (int.Parse(cmds[1]) != counterID)
-                    return;
+                if (int.Parse(cmds[1]) != counterID) return;
+                Debug.WriteLine(cmds[2]);
                 if (cmds[2] == "103")
                 {
                     int number = int.Parse(cmds[3]);
@@ -216,6 +216,15 @@ namespace Calculator_WPF
                         });
                     }
                 }
+                else if (cmds[2] == "404")
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        lb_display.Content = "Invalid";
+                    });
+                    
+                }
+
             }
         }
 
@@ -293,6 +302,12 @@ namespace Calculator_WPF
                 case "BACK":
                     currentInput = RemoveLastChar(currentInput);
                     lb_display.Content = currentInput;
+                    if (runtimeState == APPSTATE.CALL_NUM || runtimeState == APPSTATE.READY_RX_NUMBER)
+                    {
+                        currentInput = "";
+                        lb_display.Content = currentInput;
+                        runtimeState = APPSTATE.CALL_FREE;
+                    }
                     break;
 
                 case "MENU":
@@ -336,6 +351,12 @@ namespace Calculator_WPF
                 case "Back":
                     currentInput = RemoveLastChar(currentInput);
                     lb_display.Content = currentInput;
+                    if (runtimeState == APPSTATE.CALL_NUM || runtimeState == APPSTATE.READY_RX_NUMBER)
+                    {
+                        currentInput = "";
+                        lb_display.Content = currentInput;
+                        runtimeState = APPSTATE.CALL_FREE;
+                    }
                     break;
 
                 case "Subtract":
@@ -454,6 +475,7 @@ namespace Calculator_WPF
 
         private void HandleCall()
         {
+            if (runtimeState == APPSTATE.CALL_FREE) { runtimeState = APPSTATE.CALL_NUM; }
             switch (runtimeState)
             {
                 case APPSTATE.CALL_NUM:

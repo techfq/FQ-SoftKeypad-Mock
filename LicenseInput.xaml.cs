@@ -26,6 +26,7 @@ namespace Calculator_WPF
     {
         public string Public { get; set; }
         public string Secret { get; set; }
+        public string StartDate { get; set; }
         public string EndDate { get; set; }
         public string LsType { get; set; }
         public bool Status { get; set; }
@@ -33,6 +34,7 @@ namespace Calculator_WPF
         public LicenseKey(
             string licensePublic,
             string licenseSecret,
+            string licenseStart,
             string licenseEnd,
             string lsType,
             bool status = false
@@ -40,6 +42,7 @@ namespace Calculator_WPF
         {
             Public = licensePublic;
             Secret = licenseSecret;
+            StartDate = licenseStart;
             EndDate = licenseEnd;
             LsType = lsType;
             Status = status;
@@ -104,11 +107,12 @@ namespace Calculator_WPF
 
                 string licenseSecretKey = $"###FAST_QUEUE_SYS###{secret_key}###FAST_QUEUE_SYS###";
 
+                string startDate = $"{DateTime.Now.Day}/{DateTime.Now.Month}/{DateTime.Now.Year}";
                 DateTime endDate = DateTime.Now.AddDays(45);
-                string activateDate = $"###ENDDATE###{endDate}###ENDDATE###";
+                string date = $"###STARTDATE###{startDate}###STARTDATE###" + $"###ENDDATE###{endDate}###ENDDATE###";
 
                 string saveLicenseType = $"###LSTYPE###{licenseType}###LSTYPE###";
-                string saveContent = deviceKey + licenseSecretKey + activateDate + saveLicenseType;
+                string saveContent = deviceKey + licenseSecretKey + date + saveLicenseType;
                 LicenseFile.SaveLicenseFile(licenseFilePath, saveContent);
 
                 DialogResult = true;
@@ -165,6 +169,7 @@ namespace Calculator_WPF
             try
             {
                 string userSecretKey = "";
+                string lsStartDate = $"{DateTime.Now.Day}/{DateTime.Now.Month}/{DateTime.Now.Year}";
                 string lsEndDate = "";
                 string lsType = "";
                 if (File.Exists(licenseFilePath))
@@ -175,6 +180,7 @@ namespace Calculator_WPF
                         "###FAST_QUEUE_SYS###",
                         "###FAST_QUEUE_SYS###"
                     );
+                    lsStartDate = ExtractContent(readLicense, "###STARTDATE###", "###STARTDATE###");
                     lsEndDate = ExtractContent(readLicense, "###ENDDATE###", "###ENDDATE###");
                     lsType = ExtractContent(readLicense, "###LSTYPE###", "###LSTYPE###");
                 }
@@ -186,20 +192,21 @@ namespace Calculator_WPF
                 string licenseSecretKey =
                     $"###FAST_QUEUE_SYS###{userSecretKey}###FAST_QUEUE_SYS###";
 
+                string saveStartDate = $"###STARTDATE###{lsStartDate}###STARTDATE###";
                 string saveEndDate = $"###ENDDATE###{lsEndDate}###ENDDATE###";
                 string saveLsType = $"###LSTYPE###{lsType}###LSTYPE###";
-                string saveContent = deviceKey + licenseSecretKey + saveEndDate + saveLsType;
+                string saveContent = deviceKey + licenseSecretKey + saveStartDate+ saveEndDate + saveLsType;
                 LicenseFile.SaveLicenseFile(licenseFilePath, saveContent); // NEED TO SAVE THIS TO LICENSE FILE
 
-                string pub_lic = HashLicenseKey(deviceUuid).Substring(1, 8).ToUpper();
+                string pub_lic = HashLicenseKey(deviceUuid+ lsStartDate).Substring(1, 8).ToUpper();
                 string pri_lic = userSecretKey;
-                LicenseKey license = new LicenseKey(pub_lic, pri_lic, lsEndDate, lsType);
+                LicenseKey license = new LicenseKey(pub_lic, pri_lic, lsStartDate, lsEndDate, lsType);
                 return license;
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Failed to load the license file. " + ex.Message);
-                return new LicenseKey("XXX", "YYY", "000", "000");
+                return new LicenseKey("XXX", "YYY", "000","000", "000");
             }
         }
 
