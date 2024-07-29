@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Calculator_WPF
+namespace FQS_KEYPAD
 {
     public class IniFile
     {

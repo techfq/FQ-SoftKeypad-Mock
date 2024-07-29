@@ -1,26 +1,15 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Net.NetworkInformation;
+using System.IO;
+using System.Management;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
 using System.Windows.Media;
-using System.Security.Cryptography;
-using System.Management;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
-using System.IO;
-using System.Security.Policy;
 using System.Windows.Navigation;
 
-namespace Calculator_WPF
+namespace FQS_KEYPAD
 {
     public struct LicenseKey
     {
@@ -195,10 +184,10 @@ namespace Calculator_WPF
                 string saveStartDate = $"###STARTDATE###{lsStartDate}###STARTDATE###";
                 string saveEndDate = $"###ENDDATE###{lsEndDate}###ENDDATE###";
                 string saveLsType = $"###LSTYPE###{lsType}###LSTYPE###";
-                string saveContent = deviceKey + licenseSecretKey + saveStartDate+ saveEndDate + saveLsType;
+                string saveContent = deviceKey + licenseSecretKey + saveStartDate + saveEndDate + saveLsType;
                 LicenseFile.SaveLicenseFile(licenseFilePath, saveContent); // NEED TO SAVE THIS TO LICENSE FILE
 
-                string pub_lic = HashLicenseKey(deviceUuid+ lsStartDate).Substring(1, 8).ToUpper();
+                string pub_lic = HashLicenseKey(deviceUuid + lsStartDate).Substring(1, 8).ToUpper();
                 string pri_lic = userSecretKey;
                 LicenseKey license = new LicenseKey(pub_lic, pri_lic, lsStartDate, lsEndDate, lsType);
                 return license;
@@ -206,7 +195,7 @@ namespace Calculator_WPF
             catch (Exception ex)
             {
                 MessageBox.Show("Failed to load the license file. " + ex.Message);
-                return new LicenseKey("XXX", "YYY", "000","000", "000");
+                return new LicenseKey("XXX", "YYY", "000", "000", "000");
             }
         }
 

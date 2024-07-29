@@ -1,23 +1,17 @@
-﻿using System;
+﻿using FQS_KEYPAD.Utilities;
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Diagnostics;
-using System.Net.Sockets;
-using System.Net.Http;
 using System.Windows.Media;
-using System.Reflection.Metadata;
-using static System.Windows.Forms.AxHost;
-using System.Text;
-using System.Windows.Interop;
-using System.Threading;
-using System.IO;
 using System.Windows.Threading;
-using Calculator_WPF.Utilities;
-using Microsoft.VisualBasic.ApplicationServices;
-using System.Threading.Tasks;
 
-namespace Calculator_WPF
+namespace FQS_KEYPAD
 {
     public partial class MainWindow : Window
     {
@@ -28,7 +22,7 @@ namespace Calculator_WPF
         private int currentNumber = 0;
         private string cmd_msg = "";
         private string configFileName = "config.ini";
-
+        private static string appVersion = "1.0.3";
         public enum APPSTATE
         {
             STANDBY,
@@ -222,7 +216,7 @@ namespace Calculator_WPF
                     {
                         lb_display.Content = "Invalid";
                     });
-                    
+
                 }
 
             }
