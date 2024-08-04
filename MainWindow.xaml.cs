@@ -46,49 +46,50 @@ namespace FQS_KEYPAD
 
         public MainWindow()
         {
-            LicenseInput licenseInput = new LicenseInput();
-            LicenseKey result = licenseInput.IsValid();
+             
+                LicenseInput licenseInput = new LicenseInput();
+                LicenseKey result = licenseInput.IsValid();
 
-            if (!result.Status)
-            {
-                if (licenseInput.ShowDialog() != true)
+                if (!result.Status)
                 {
-                    Application.Current.Shutdown();
+                    if (licenseInput.ShowDialog() != true)
+                    {
+                        Application.Current.Shutdown();
+                    }
                 }
-            }
-            InitializeComponent();
+                InitializeComponent();
 
-            iniFile = new IniFile(configFileName);
-            tcp_ip = iniFile.ReadValue(TCPIP.TCPNAME, TCPIP.ADDRESS, "127.0.0.1");
-            tcp_port = int.Parse(iniFile.ReadValue(TCPIP.TCPNAME, TCPIP.PORT, "5000"));
-            counterID = int.Parse(iniFile.ReadValue(USER.NAME, USER.COUNTERID, "1"));
-            tellerID = int.Parse(iniFile.ReadValue(USER.NAME, USER.TELLERID, "1"));
-            autoConnect = iniFile.ReadValue(USER.NAME, USER.AUTOCONNECT, "0") == "1" ? true : false;
+                iniFile = new IniFile(configFileName);
+                tcp_ip = iniFile.ReadValue(TCPIP.TCPNAME, TCPIP.ADDRESS, "127.0.0.1");
+                tcp_port = int.Parse(iniFile.ReadValue(TCPIP.TCPNAME, TCPIP.PORT, "5000"));
+                counterID = int.Parse(iniFile.ReadValue(USER.NAME, USER.COUNTERID, "1"));
+                tellerID = int.Parse(iniFile.ReadValue(USER.NAME, USER.TELLERID, "1"));
+                autoConnect = iniFile.ReadValue(USER.NAME, USER.AUTOCONNECT, "0") == "1" ? true : false;
 
-            if (counterID == tellerID)
-            {
-                currentInput = $"{counterID.ToString("D2")}00";
-                lb_display.Content = currentInput;
-            }
-            else
-            {
-                currentInput = $"{counterID.ToString("D2")}{tellerID.ToString("D2")}";
-                lb_display.Content = currentInput;
-            }
+                if (counterID == tellerID)
+                {
+                    currentInput = $"{counterID.ToString("D2")}00";
+                    lb_display.Content = currentInput;
+                }
+                else
+                {
+                    currentInput = $"{counterID.ToString("D2")}{tellerID.ToString("D2")}";
+                    lb_display.Content = currentInput;
+                }
 
-            MouseLeftButtonDown += MainWindow_MouseLeftButtonDown;
-            double leftPosition = SystemParameters.PrimaryScreenWidth - Width - 20;
-            Left = leftPosition;
-            Top = 20;
-            PreviewKeyUp += OnPreviewKeyDown;
+                MouseLeftButtonDown += MainWindow_MouseLeftButtonDown;
+                double leftPosition = SystemParameters.PrimaryScreenWidth - Width - 20;
+                Left = leftPosition;
+                Top = 20;
+                PreviewKeyUp += OnPreviewKeyDown;
 
-            tcpClient.MessageReceived += OnMessageReceived;
-            tcpClient.ConnectionStatusChanged += ConnectionStatusChanged;
+                tcpClient.MessageReceived += OnMessageReceived;
+                tcpClient.ConnectionStatusChanged += ConnectionStatusChanged;
 
-            if (autoConnect)
-            {
-                Task.Run(() => ConnectAndListen(tcp_ip, tcp_port));
-            }
+                if (autoConnect)
+                {
+                    Task.Run(() => ConnectAndListen(tcp_ip, tcp_port));
+                }
 
             if (result.LsType != "888")
             {
@@ -399,11 +400,12 @@ namespace FQS_KEYPAD
 
         private static string RemoveLastChar(string content)
         {
-            if (content.Length > 0)
+            if (content != null && content.Length > 0)
             {
                 content = content[0..^1]; // content = content.Substring(0, content.Length - 1);
+                return content;
             }
-            return content;
+            return "";
         }
 
         private static string CalculateCRC(string textString)
@@ -425,8 +427,8 @@ namespace FQS_KEYPAD
             switch (runtimeState)
             {
                 case APPSTATE.LOGIN:
-                    Debug.WriteLine(currentInput + " " + currentInput.Length);
-                    if (currentInput.Length != 4)
+                    Debug.WriteLine("APP LOGIN: " + currentInput + " " + currentInput.Length);
+                    if (currentInput.Length < 4)
                         return;
                     counterID = int.Parse(currentInput[0..^2]); // [COUNTER ID][TELLER ID]
                     tellerID = int.Parse(currentInput[^2..]);
