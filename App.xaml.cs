@@ -6,7 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace Calculator_WPF
+namespace FQ_KPSoft
 {
     /// <summary>
     /// Interaction logic for App.xaml

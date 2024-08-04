@@ -14,7 +14,12 @@ public static class USER
 {
     public const string NAME = "USER";
     public const string TELLERID = "TELLERID";
+    public const string COUNTERID = "COUNTERID";
     public const string AUTOCONNECT = "AutoConnect";
-
 }
-
+public static class COMPANY
+{
+    public const string NAME = "FAST QUEUE VN";
+    public const string PHONE = "0938 234 677";
+    public const string WEBSITE = "www.fastqueueapp.com";
+}

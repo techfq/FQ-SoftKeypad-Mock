@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Calculator_WPF
+namespace FQ_KPSoft
 {
     public class IniFile
     {

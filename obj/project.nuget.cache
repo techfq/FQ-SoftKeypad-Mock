@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "oFj5EqLZ2LzmRXM6xj1J0qHdJ0n4GdQwj/woEwrehSutB4fYJJ97i6wkgFh9Z/dnzOOacIQYmutYf/ntZz1DGw==",
+  "success": true,
+  "projectFilePath": "D:\\Project\\FQS\\2024\\FQ-KPSoft\\FQ-KPSoft\\FQ-KPSoft.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\NOBI\\.nuget\\packages\\system.codedom\\8.0.0\\system.codedom.8.0.0.nupkg.sha512",
+    "C:\\Users\\NOBI\\.nuget\\packages\\system.management\\8.0.0\\system.management.8.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}

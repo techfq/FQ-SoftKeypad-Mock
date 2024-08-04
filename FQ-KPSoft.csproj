@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <RootNamespace>FQ_KPSoft</RootNamespace>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+	  <UseWindowsForms>True</UseWindowsForms>
+	  <ApplicationIcon>icon.ico</ApplicationIcon>
+  </PropertyGroup>
+ 
+
+  <ItemGroup>
+    <PackageReference Include="System.Management" Version="8.0.0" />
+  </ItemGroup>
+    <ItemGroup>
+	    <Content Include="icon.ico" />
+    </ItemGroup>
+
+  <ItemGroup>
+	  <Resource Include="close_btn.png" />
+	  <Resource Include="fqs_logo.png" />
+    <Resource Include="maximize_btn.png" />
+	  <Resource Include="minimize_btn.png" />
+	  <Resource Include="icon.ico" />
+  </ItemGroup>
+
+</Project>
