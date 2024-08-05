@@ -189,30 +189,30 @@ namespace FQ_KPSoft
                 Debug.WriteLine(cmds[2]);
                 if (cmds[2] == "103")
                 {
-                    int number = int.Parse(cmds[3]);
-                    if (number > 0)
-                    {
-                        currentNumber = number;
-                        Dispatcher.Invoke(() =>
-                        {
-                            lb_display.Content = number.ToString("D4");
-                        });
-                    }
-                    else
-                    {
-                        Dispatcher.Invoke(() =>
-                        {
-                            lb_display.Content = "Hết khách";
-                        });
-                    }
                     if (runtimeState == APPSTATE.LOGIN)
                     {
                         iniFile.WriteValue(USER.NAME, USER.TELLERID, tellerID.ToString());
                         iniFile.WriteValue(USER.NAME, USER.COUNTERID, counterID.ToString());
                         iniFile.Save(configFileName);
                     }
-                    if (runtimeState != APPSTATE.CALL_NUM)
+                    if (runtimeState != APPSTATE.CALL_NUM && runtimeState != APPSTATE.STANDBY)
                     {
+                        int number = int.Parse(cmds[3]);
+                        if (number > 0)
+                        {
+                            currentNumber = number;
+                            Dispatcher.Invoke(() =>
+                            {
+                                lb_display.Content = number.ToString("D4");
+                            });
+                        }
+                        else
+                        {
+                            Dispatcher.Invoke(() =>
+                            {
+                                lb_display.Content = "Hết khách";
+                            });
+                        }
                         runtimeState = APPSTATE.CALL_NUM;
                         Dispatcher.Invoke(() =>
                         {
@@ -317,7 +317,7 @@ namespace FQ_KPSoft
                 case "MENU":
                     if (runtimeState != APPSTATE.LOGIN)
                     {
-                        runtimeState = APPSTATE.LOGIN;
+                        runtimeState = APPSTATE.STANDBY;
                         if (counterID == tellerID)
                         {
                             currentInput = $"{counterID.ToString("D2")}00";
@@ -329,6 +329,7 @@ namespace FQ_KPSoft
                             lb_display.Content = currentInput;
                         }
                         btn_enter.Content = "ENTER";
+                        logOut();
                     }
                     break;
 
@@ -363,10 +364,11 @@ namespace FQ_KPSoft
                     }
                     break;
 
-                case "Subtract":
+                case "Subtract": // "MENU"
                     if (runtimeState != APPSTATE.LOGIN)
                     {
-                        runtimeState = APPSTATE.LOGIN;
+                        
+                        runtimeState = APPSTATE.STANDBY;
                         if (counterID == tellerID)
                         {
                             currentInput = $"{counterID.ToString("D2")}00";
@@ -378,6 +380,8 @@ namespace FQ_KPSoft
                             lb_display.Content = currentInput;
                         }
                         btn_enter.Content = "ENTER";
+                        logOut();
+
                     }
                     break;
 
@@ -429,6 +433,13 @@ namespace FQ_KPSoft
 
             string crcString = crc.ToString("X2");
             return crcString;
+        }
+
+        private void logOut()
+        {
+            cmd_msg = string.Format("{0},0,101,{0},0,", tellerID, tellerID); // NEW_CALL 1,0,107,0,0,1B
+            cmd_msg += CalculateCRC(cmd_msg);
+            tcpClient.SendData(cmd_msg);
         }
 
         private void HandleEnter()
@@ -487,7 +498,7 @@ namespace FQ_KPSoft
                     string input_number = ("" + lb_display.Content.ToString()).Trim();
                     if (input_number.Length < 5)
                     {
-                        cmd_msg = string.Format("{0},0,177,{1},0,", tellerID, input_number); // RE_CALL 1,0,107,0,0,1B
+                        cmd_msg = string.Format("{0},0,107,{1},0,", tellerID, input_number); // RE_CALL 1,0,107,0,0,1B
                         cmd_msg += CalculateCRC(cmd_msg);
                         tcpClient.SendData(cmd_msg);
                     }
