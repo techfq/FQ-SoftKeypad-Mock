@@ -14,7 +14,7 @@ public static class USER
 {
     public const string NAME = "USER";
     public const string TELLERID = "TELLERID";
-    public const string COUNTERID = "TELLERID";
+    public const string COUNTERID = "COUNTERID";
     public const string AUTOCONNECT = "AutoConnect";
 }
 public static class COMPANY

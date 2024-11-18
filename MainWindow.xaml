@@ -110,6 +110,7 @@
         </Button>
         <Image HorizontalAlignment="Left" Height="45" Width="45" Margin="10,10,0,0" VerticalAlignment="Top"  Source="/fqs_logo.png"/>
         <Label Content="FAST QUEUE - TELLER" HorizontalAlignment="Left" Margin="60,16,0,0" VerticalAlignment="Top" Width="243" Foreground="#FF0E1B64" FontFamily="Arial Rounded MT Bold" FontSize="14" FontWeight="Bold"/>
+        <Label x:Name="lbLicenseDate" Content="0 day" HorizontalAlignment="Left" Margin="240,395,0,0" VerticalAlignment="Top" Width="65" Height="20" HorizontalContentAlignment="Center" Background="#FF6FDFD3" Foreground="#FF000078" Padding="0,2,0,0" />
 
     </Grid>
 </Window>

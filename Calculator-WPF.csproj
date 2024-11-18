@@ -25,6 +25,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="System.Management" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Resource Include="close_btn.bmp" />
     <Resource Include="close_btn.png" />
     <Resource Include="fqs_logo.png" />

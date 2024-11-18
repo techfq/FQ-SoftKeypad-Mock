@@ -17,6 +17,7 @@ namespace Calculator_WPF.Utilities
 
         // Define the delegate and event
         public delegate void MessageReceivedEventHandler(object sender, string message);
+        public event EventHandler<bool> ConnectionStatusChanged;
         public event MessageReceivedEventHandler MessageReceived;
 
         public TcpClientHandle()
@@ -31,7 +32,7 @@ namespace Calculator_WPF.Utilities
                 tcpClient.Connect(ipAddress, port);
                 networkStream = tcpClient.GetStream();
                 Debug.WriteLine("Connected to the server");
-
+                OnConnectionStatusChanged(true);
                 // Start listening for incoming data in a separate thread
                 Task.Run(() => ListenForData(cancellationTokenSource.Token));
                 return true;
@@ -75,6 +76,11 @@ namespace Calculator_WPF.Utilities
             MessageReceived?.Invoke(this, message);
         }
 
+        private void OnConnectionStatusChanged(bool isConnected)
+        {
+            ConnectionStatusChanged?.Invoke(this, isConnected);
+        }
+
         public bool Disconnect()
         {
             try
@@ -86,11 +92,11 @@ namespace Calculator_WPF.Utilities
                     tcpClient.Close();
                     Debug.WriteLine("Disconnected from the server");
                 }
+                OnConnectionStatusChanged(false);
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error while listening for data: {ex.Message}");
                 Disconnect();
             }
             return false;

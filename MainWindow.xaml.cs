@@ -15,6 +15,7 @@ using System.IO;
 using System.Windows.Threading;
 using Calculator_WPF.Utilities;
 using Microsoft.VisualBasic.ApplicationServices;
+using System.Threading.Tasks;
 
 namespace Calculator_WPF
 {
@@ -45,13 +46,16 @@ namespace Calculator_WPF
         private int tcp_port = 5000;
         private IniFile iniFile;
         private bool isConnected = false;
+        private bool autoConnect = false;
 
         private TcpClientHandle tcpClient = new TcpClientHandle();
 
         public MainWindow()
         {
             LicenseInput licenseInput = new LicenseInput();
-            if (!licenseInput.isValid())
+            LicenseKey result = licenseInput.IsValid();
+
+            if (!result.Status)
             {
                 if (licenseInput.ShowDialog() != true)
                 {
@@ -65,7 +69,7 @@ namespace Calculator_WPF
             tcp_port = int.Parse(iniFile.ReadValue(TCPIP.TCPNAME, TCPIP.PORT, "5000"));
             counterID = int.Parse(iniFile.ReadValue(USER.NAME, USER.COUNTERID, "1"));
             tellerID = int.Parse(iniFile.ReadValue(USER.NAME, USER.TELLERID, "1"));
-            bool autoConnect = iniFile.ReadValue(USER.NAME, USER.AUTOCONNECT, "0") == "1" ? true : false;
+            autoConnect = iniFile.ReadValue(USER.NAME, USER.AUTOCONNECT, "0") == "1" ? true : false;
 
             if (counterID == tellerID)
             {
@@ -85,18 +89,45 @@ namespace Calculator_WPF
             PreviewKeyUp += OnPreviewKeyDown;
 
             tcpClient.MessageReceived += OnMessageReceived;
+            tcpClient.ConnectionStatusChanged += ConnectionStatusChanged;
+
             if (autoConnect)
             {
+                Task.Run(() => ConnectAndListen(tcp_ip, tcp_port));
+            }
+
+            if (result.LsType != "888")
+            {
+                int dayDifference = 1;
+                Debug.WriteLine(result.EndDate);
+                if(result.EndDate == string.Empty) 
+                { 
+                    result.EndDate = DateTime.Now.AddDays(1).ToString(); 
+                }
+                dayDifference = (int)(DateTime.Parse(result.EndDate) - DateTime.Today).TotalDays;
+                lbLicenseDate.Content = $"{dayDifference} days";
+                if (dayDifference < 1)
+                {
+                    File.Delete("license.lic");
+                }
+            }
+            else
+            {
+                lbLicenseDate.Content = $"Activated";
+            }
+
+        }
+
+        private async Task ConnectAndListen(string serverIpAddress, int serverPort)
+        {
+            while (!isConnected)
+            {
+                isConnected = tcpClient.Connect(serverIpAddress, serverPort);
+
                 if (!isConnected)
                 {
-                    if (tcpClient.Connect(tcp_ip, tcp_port))
-                    {
-                        isConnected = true;
-                        btn_connect.Content = "Connected";
-                        btn_connect.Background = new SolidColorBrush(
-                            Color.FromRgb(0x70, 0xD8, 0x80)
-                        ); //#70D880
-                    }
+                    await Task.Delay(TimeSpan.FromSeconds(5));
+                    Debug.WriteLine("Retry connection ...!");
                 }
             }
         }
@@ -105,41 +136,68 @@ namespace Calculator_WPF
         {
             base.OnClosing(e);
             Window_Closed();
+            Application.Current.Shutdown();
         }
 
-        private void UpdateMainDisplay(string content)
+        private void ConnectionStatusChanged(object sender, bool isServerConnected)
         {
-            Dispatcher.Invoke(() => {
-                lb_display.Content = content;
-            });
+            if (isServerConnected)
+            {
+                Debug.WriteLine("Connection established.");
+                isConnected = true;
+                Dispatcher.Invoke(() =>
+                {
+                    btn_connect.Content = "Connected";
+                    btn_connect.Background = new SolidColorBrush(Color.FromRgb(0x70, 0xD8, 0x80)); //#70D880
+                });
+            }
+            else
+            {
+                isConnected = false;
+                Dispatcher.Invoke(() =>
+                {
+                    btn_connect.Content = "Disconnect";
+                    btn_connect.Background = new SolidColorBrush(Color.FromRgb(0xED, 0x32, 0x37)); // #ED3237
+                });
+                if (autoConnect)
+                {
+                    Task.Run(() => ConnectAndListen(tcp_ip, tcp_port));
+                }
+            }
         }
 
         private void OnMessageReceived(object sender, string rx_mgs)
         {
             Debug.WriteLine(rx_mgs);
+
             char STX = (char)2;
             char ETX = (char)3;
-            if (rx_mgs[0] != STX && rx_mgs[^1] != ETX) return;
+            if (rx_mgs[0] != STX && rx_mgs[^1] != ETX)
+                return;
 
             rx_mgs = rx_mgs[1..^1]; // Remove STX, ETX
-            if(!tcpClient.IsValidChecksum(rx_mgs)) return;
+            if (!tcpClient.IsValidChecksum(rx_mgs))
+                return;
             string[] cmds = rx_mgs.Split(',');
             if (cmds.Length > 3)
             {
-                if (int.Parse(cmds[1]) != counterID) return;    
+                if (int.Parse(cmds[1]) != counterID)
+                    return;
                 if (cmds[2] == "103")
                 {
                     int number = int.Parse(cmds[3]);
                     if (number > 0)
                     {
                         currentNumber = number;
-                        Dispatcher.Invoke(() => {
+                        Dispatcher.Invoke(() =>
+                        {
                             lb_display.Content = number.ToString("D4");
                         });
                     }
                     else
                     {
-                        Dispatcher.Invoke(() => {
+                        Dispatcher.Invoke(() =>
+                        {
                             lb_display.Content = "Hết khách";
                         });
                     }
@@ -152,12 +210,12 @@ namespace Calculator_WPF
                     if (runtimeState != APPSTATE.CALL_NUM)
                     {
                         runtimeState = APPSTATE.CALL_NUM;
-                        Dispatcher.Invoke(() => {
+                        Dispatcher.Invoke(() =>
+                        {
                             btn_enter.Content = "NEXT";
                         });
                     }
                 }
-
             }
         }
 
@@ -181,20 +239,13 @@ namespace Calculator_WPF
         {
             if (!isConnected)
             {
-                if (tcpClient.Connect(tcp_ip, tcp_port))
-                {
-                    isConnected = true;
-                    btn_connect.Content = "Connected";
-                    btn_connect.Background = new SolidColorBrush(Color.FromRgb(0x70, 0xD8, 0x80)); //#70D880
-                }
+                isConnected = tcpClient.Connect(tcp_ip, tcp_port);
             }
             else
             {
                 if (tcpClient.Disconnect())
                 {
                     isConnected = false;
-                    btn_connect.Content = "Disconnect";
-                    btn_connect.Background = new SolidColorBrush(Color.FromRgb(0xED, 0x32, 0x37)); // #ED3237
                 }
             }
         }
@@ -360,12 +411,15 @@ namespace Calculator_WPF
             {
                 case APPSTATE.LOGIN:
                     Debug.WriteLine(currentInput + " " + currentInput.Length);
-                    if (currentInput.Length != 4) return;
+                    if (currentInput.Length != 4)
+                        return;
                     counterID = int.Parse(currentInput[0..^2]); // [COUNTER ID][TELLER ID]
                     tellerID = int.Parse(currentInput[^2..]);
-                    Debug.WriteLine(counterID + " " + tellerID);    
-                    if (counterID < 1 || counterID >100) return;
-                    if (tellerID == 0) tellerID = counterID;
+                    Debug.WriteLine(counterID + " " + tellerID);
+                    if (counterID < 1 || counterID > 100)
+                        return;
+                    if (tellerID == 0)
+                        tellerID = counterID;
 
                     cmd_msg = string.Format("{0},0,100,{1},0,", counterID, tellerID); // 1,0,100,1,0,1D
                     cmd_msg += CalculateCRC(cmd_msg);
